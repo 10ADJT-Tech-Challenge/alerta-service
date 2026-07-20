@@ -1,6 +1,9 @@
 package com.adjt.alertaservice.messaging.consumer;
 
+import com.adjt.alertaservice.client.EventoTratamentoResponse;
+import com.adjt.alertaservice.client.TratamentoApiClient;
 import com.adjt.alertaservice.dto.MedicaoRealizadaEvent;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Service;
@@ -8,18 +11,34 @@ import com.adjt.alertaservice.configuration.RabbitMQConfig;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class MedicaoConsumer {
+
+    private final TratamentoApiClient tratamentoApiClient;
 
     @RabbitListener(queues = RabbitMQConfig.QUEUE_NAME)
     public void consumirMedicao(MedicaoRealizadaEvent evento) {
         log.info("Recebida nova medição para avaliação. ID medião: {}", evento.id());
 
-        // PASSO 1: Fazer um GET para o acompanhamento-service para pegar os limites
-        // Ex: GET /tratamentos/paciente/{idPaciente}/eventos
+        log.info("Buscando parâmetros referência para tratamento evento com ID: {}", evento.idEvento());
+        EventoTratamentoResponse eventoTratamentoResponse = tratamentoApiClient.buscarTratamentosEventoPorId(evento.idEvento());
+        log.info("Referencia do evento encontrado: {}", eventoTratamentoResponse);
 
-        // PASSO 2: Avaliar se 'evento.valor()' está fora dos limites de segurança
+        if (eventoTratamentoResponse == null || eventoTratamentoResponse.evento() == null) {
+            log.warn("Evento de tratamento com ID {} não encontrado. Ignorando medição.", evento.idEvento());
+            return;
+        }
 
-        // PASSO 3: Se for grave, disparar o log de notificação!
-        log.warn("ALERTA GRAVE! A medição {} está com parâmetros fora do normal.", evento.id());
+        if (isParametrosAlterados(evento, eventoTratamentoResponse)) {
+            log.warn("ALERTA GRAVE! A medição {} está com parâmetros fora do normal.", evento.id());
+            // todo: implementar alerta grave
+            return;
+        }
+        log.warn("A medição {} está com parâmetros normal.", evento.id());
+    }
+
+    private static boolean isParametrosAlterados(MedicaoRealizadaEvent evento, EventoTratamentoResponse eventoTratamentoResponse) {
+        return evento.valorMedicao() > eventoTratamentoResponse.evento().valor_ref_max()
+                || evento.valorMedicao() < eventoTratamentoResponse.evento().valor_ref_min();
     }
 }
