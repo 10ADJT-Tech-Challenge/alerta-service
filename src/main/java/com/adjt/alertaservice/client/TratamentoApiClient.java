@@ -1,5 +1,6 @@
 package com.adjt.alertaservice.client;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
@@ -11,9 +12,11 @@ public class TratamentoApiClient {
 
     private final RestClient restClient;
 
-    public TratamentoApiClient() {
+    public TratamentoApiClient(
+            @Value("${client.tratamento-api.base-url}") String baseUrl
+    ) {
         this.restClient = RestClient.builder()
-                .baseUrl("http://localhost:8080/api/v1/") // Substitua pela properti da URL base real
+                .baseUrl(baseUrl)
                 .requestInterceptor((request, body, execution) -> {
                     // ISSO VAI IMPRIMIR A URL EXATA ANTES DE ENVIAR
                     System.out.println("DEBUG RESTCLIENT - Método: " + request.getMethod());
