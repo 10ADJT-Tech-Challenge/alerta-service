@@ -3,9 +3,11 @@ package com.adjt.alertaservice.messaging.consumer;
 import com.adjt.alertaservice.client.EventoTratamentoResponse;
 import com.adjt.alertaservice.client.TratamentoApiClient;
 import com.adjt.alertaservice.dto.MedicaoRealizadaEvent;
+import com.adjt.alertaservice.service.EmailService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import com.adjt.alertaservice.configuration.RabbitMQConfig;
 
@@ -15,6 +17,11 @@ import com.adjt.alertaservice.configuration.RabbitMQConfig;
 public class MedicaoConsumer {
 
     private final TratamentoApiClient tratamentoApiClient;
+    private final EmailService emailService;
+
+    @Value("${alerta.email.destinatario}")
+    private String emailDestinatario;
+
 
     @RabbitListener(queues = RabbitMQConfig.QUEUE_NAME)
     public void consumirMedicao(MedicaoRealizadaEvent evento) {
@@ -29,12 +36,18 @@ public class MedicaoConsumer {
             return;
         }
 
-        if (isParametrosAlterados(evento, eventoTratamentoResponse)) {
-            log.warn("ALERTA GRAVE! A medição {} está com parâmetros fora do normal.", evento.id());
-            // todo: implementar alerta grave
+        if (!isParametrosAlterados(evento, eventoTratamentoResponse)) {
+            log.info("A medição {} está com parâmetros normal.", evento.id());
             return;
         }
-        log.warn("A medição {} está com parâmetros normal.", evento.id());
+
+        log.warn("ALERTA GRAVE! A medição {} está com parâmetros fora do normal.", evento.id());
+        emailService.enviarAlertaRisco(
+                emailDestinatario,
+                evento.cpfPaciente(),
+                eventoTratamentoResponse.evento().nome(),
+                evento.valorMedicao()
+        );
     }
 
     private static boolean isParametrosAlterados(MedicaoRealizadaEvent evento, EventoTratamentoResponse eventoTratamentoResponse) {
