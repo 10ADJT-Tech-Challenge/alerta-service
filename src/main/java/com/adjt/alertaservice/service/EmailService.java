@@ -1,6 +1,7 @@
 package com.adjt.alertaservice.service;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.scheduling.annotation.Async;
@@ -11,6 +12,9 @@ import org.springframework.stereotype.Service;
 public class EmailService {
 
     private final JavaMailSender mailSender;
+
+    @Value("${spring.mail.username}")
+    private String remetente;
 
     public EmailService(JavaMailSender mailSender) {
         this.mailSender = mailSender;
@@ -30,7 +34,7 @@ public class EmailService {
         try {
             SimpleMailMessage mensagem = new SimpleMailMessage();
 
-            mensagem.setFrom("Alerta Saúde SUS <o.teu.email.do.projeto@gmail.com>");
+            mensagem.setFrom("Alerta Saúde SUS <" + remetente + ">");
             mensagem.setTo(destinatario);
             mensagem.setSubject("⚠️ ALERTA CLÍNICO: Alteração Crítica - Paciente " + identificadorPaciente);
 

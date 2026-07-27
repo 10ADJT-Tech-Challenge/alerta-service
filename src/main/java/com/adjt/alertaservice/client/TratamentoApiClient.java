@@ -1,7 +1,6 @@
 package com.adjt.alertaservice.client;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
@@ -27,10 +26,10 @@ public class TratamentoApiClient {
                 .build();
     }
 
-    public EventoTratamentoResponse buscarTratamentosEventoPorId(UUID id) {
+    public EventoResponse buscarEventoPorId(UUID id) {
         return restClient.get()
-                .uri("tratamentos/tratamento-evento/{id}", id)
+                .uri("eventos/{id}", id)
                 .retrieve()
-                .body(new ParameterizedTypeReference<>() {});
+                .body(EventoResponse.class);
     }
 }
